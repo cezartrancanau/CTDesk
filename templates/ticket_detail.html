@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between">
+    <div>
+        <h1>#{{ ticket.id }} {{ ticket.subject }}</h1>
+        <p class="text-muted">{{ ticket.category }} · Created {{ ticket.created_at }}</p>
+    </div>
+    {% if overdue %}
+    <div class="alert alert-danger">SLA overdue</div>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card p-3 mb-3">
+            <h5>Description</h5>
+            <p>{{ ticket.description }}</p>
+        </div>
+
+        <div class="card p-3 mb-3">
+            <h5>Add Reply / Internal Note</h5>
+            <form method="post">
+                <input type="hidden" name="action" value="message">
+                <select class="form-select mb-2" name="message_type">
+                    <option value="public_reply">Public Reply</option>
+                    <option value="internal_note">Internal Note</option>
+                </select>
+                <textarea class="form-control mb-2" name="message" rows="4" required></textarea>
+                <button class="btn btn-primary">Add Message</button>
+            </form>
+        </div>
+
+        <div class="card p-3">
+            <h5>Conversation</h5>
+            {% for m in messages %}
+            <div class="message {{ m.message_type }}">
+                <strong>{{ m.user_name }}</strong>
+                <span class="badge text-bg-light">{{ m.message_type }}</span>
+                <small>{{ m.created_at }}</small>
+                <p>{{ m.message }}</p>
+            </div>
+            {% else %}
+            <p class="text-muted">No messages yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3 mb-3">
+            <h5>Customer</h5>
+            <p>
+                <strong>{{ ticket.customer_name }}</strong><br>
+                {{ ticket.customer_email }}<br>
+                {{ ticket.phone or "" }}<br>
+                {{ ticket.company or "" }}
+            </p>
+        </div>
+
+        <div class="card p-3 mb-3">
+            <h5>Ticket Controls</h5>
+            <form method="post">
+                <input type="hidden" name="action" value="update">
+
+                <label class="form-label">Status</label>
+                <select class="form-select mb-2" name="status">
+                    {% for s in ["Open", "In Progress", "Resolved", "Closed"] %}
+                    <option {% if ticket.status == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+
+                <label class="form-label">Priority</label>
+                <select class="form-select mb-2" name="priority">
+                    {% for p in ["Low", "Medium", "High", "Urgent"] %}
+                    <option {% if ticket.priority == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+
+                <label class="form-label">Assigned Agent</label>
+                <select class="form-select mb-3" name="assigned_to">
+                    <option value="">Unassigned</option>
+                    {% for a in agents %}
+                    <option value="{{ a.id }}" {% if ticket.assigned_to == a.id %}selected{% endif %}>{{ a.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <button class="btn btn-dark w-100">Update Ticket</button>
+            </form>
+        </div>
+
+        <div class="card p-3">
+            <h5>Activity Log</h5>
+            {% for l in logs %}
+            <div class="small mb-2">
+                <strong>{{ l.user_name }}</strong>: {{ l.action }}<br>
+                <span class="text-muted">{{ l.created_at }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

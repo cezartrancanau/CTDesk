@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Create Ticket</h1>
+
+<form method="post" class="card p-4">
+    <label class="form-label">Subject</label>
+    <input class="form-control mb-3" name="subject" required>
+
+    <label class="form-label">Description</label>
+    <textarea class="form-control mb-3" name="description" rows="5" required></textarea>
+
+    <div class="row">
+        <div class="col">
+            <label class="form-label">Category</label>
+            <input class="form-control mb-3" name="category" placeholder="Software Issue, Billing, Account Access..." required>
+        </div>
+        <div class="col">
+            <label class="form-label">Priority</label>
+            <select class="form-select mb-3" name="priority">
+                {% for p in ["Low", "Medium", "High", "Urgent"] %}
+                <option>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <label class="form-label">Customer</label>
+    <select class="form-select mb-3" name="customer_id">
+        {% for c in customers %}
+        <option value="{{ c.id }}">{{ c.name }} — {{ c.email }}</option>
+        {% endfor %}
+    </select>
+
+    <label class="form-label">Assign Agent</label>
+    <select class="form-select mb-3" name="assigned_to">
+        <option value="">Unassigned</option>
+        {% for a in agents %}
+        <option value="{{ a.id }}">{{ a.name }}</option>
+        {% endfor %}
+    </select>
+
+    <button class="btn btn-primary">Create</button>
+</form>
+{% endblock %}

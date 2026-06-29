@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Dashboard</h1>
+    <a class="btn btn-success" href="{{ url_for('create_ticket') }}">Create Ticket</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col"><div class="stat-card"><span>Total</span><strong>{{ stats.total }}</strong></div></div>
+    <div class="col"><div class="stat-card"><span>Open</span><strong>{{ stats.open }}</strong></div></div>
+    <div class="col"><div class="stat-card"><span>In Progress</span><strong>{{ stats.progress }}</strong></div></div>
+    <div class="col"><div class="stat-card"><span>Resolved</span><strong>{{ stats.resolved }}</strong></div></div>
+    <div class="col"><div class="stat-card danger"><span>SLA Overdue</span><strong>{{ stats.overdue }}</strong></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header fw-bold">Recent Tickets</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <tr>
+                <th>ID</th><th>Subject</th><th>Customer</th><th>Priority</th><th>Status</th><th>Agent</th><th>SLA Due</th>
+            </tr>
+            {% for t in recent_tickets %}
+            <tr>
+                <td>#{{ t.id }}</td>
+                <td><a href="{{ url_for('ticket_detail', ticket_id=t.id) }}">{{ t.subject }}</a></td>
+                <td>{{ t.customer_name }}</td>
+                <td><span class="badge text-bg-secondary">{{ t.priority }}</span></td>
+                <td>{{ t.status }}</td>
+                <td>{{ t.agent_name or "Unassigned" }}</td>
+                <td>{{ t.sla_due_at }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}

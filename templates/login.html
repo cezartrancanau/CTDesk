@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="login-card mx-auto">
+    <h2 class="mb-3">CTDesk Login</h2>
+    <p class="text-muted">Advanced Customer Support Ticketing System</p>
+
+    <form method="post">
+        <label class="form-label">Email</label>
+        <input class="form-control mb-3" name="email" value="admin@ctdesk.local">
+
+        <label class="form-label">Password</label>
+        <input class="form-control mb-3" type="password" name="password" value="admin123">
+
+        <button class="btn btn-primary w-100">Login</button>
+    </form>
+
+    <div class="small mt-3 text-muted">
+        Admin: admin@ctdesk.local / admin123<br>
+        Agent: agent@ctdesk.local / agent123
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Tickets</h1>
+    <div>
+        <a class="btn btn-outline-success" href="{{ url_for('export_tickets') }}">Export CSV</a>
+        <a class="btn btn-primary" href="{{ url_for('create_ticket') }}">New Ticket</a>
+    </div>
+</div>
+
+<form class="row g-2 mb-3">
+    <div class="col-md-5"><input class="form-control" name="q" placeholder="Search subject, description, customer..." value="{{ q }}"></div>
+    <div class="col-md-2">
+        <select class="form-select" name="status">
+            <option value="">All statuses</option>
+            {% for s in ["Open", "In Progress", "Resolved", "Closed"] %}
+            <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" name="priority">
+            <option value="">All priorities</option>
+            {% for p in ["Low", "Medium", "High", "Urgent"] %}
+            <option value="{{ p }}" {% if priority == p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2"><button class="btn btn-dark w-100">Filter</button></div>
+</form>
+
+<div class="card">
+<table class="table table-hover mb-0">
+    <tr><th>ID</th><th>Subject</th><th>Customer</th><th>Priority</th><th>Status</th><th>Agent</th><th>Updated</th></tr>
+    {% for t in tickets %}
+    <tr>
+        <td>#{{ t.id }}</td>
+        <td><a href="{{ url_for('ticket_detail', ticket_id=t.id) }}">{{ t.subject }}</a></td>
+        <td>{{ t.customer_name }}<br><small>{{ t.customer_email }}</small></td>
+        <td>{{ t.priority }}</td>
+        <td>{{ t.status }}</td>
+        <td>{{ t.agent_name or "Unassigned" }}</td>
+        <td>{{ t.updated_at }}</td>
+    </tr>
+    {% endfor %}
+</table>
+</div>
+{% endblock %}

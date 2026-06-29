@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Knowledge Base</h1>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <form method="post" class="card p-3">
+            <h5>New Article</h5>
+            <input class="form-control mb-2" name="title" placeholder="Title" required>
+            <input class="form-control mb-2" name="category" placeholder="Category" required>
+            <textarea class="form-control mb-2" name="content" rows="6" placeholder="Content" required></textarea>
+            <button class="btn btn-primary">Add Article</button>
+        </form>
+    </div>
+
+    <div class="col-md-8">
+        {% for a in articles %}
+        <div class="card p-3 mb-3">
+            <h5>{{ a.title }}</h5>
+            <div class="text-muted small">{{ a.category }} · {{ a.author }} · {{ a.created_at }}</div>
+            <p class="mt-2">{{ a.content }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

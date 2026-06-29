@@ -1,0 +1,76 @@
+:root {
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+}
+
+[data-theme="dark"] {
+    --bg: #0f172a;
+    --card: #111827;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --border: #374151;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+}
+
+.navbar, .card, .login-card, .stat-card {
+    background: var(--card);
+    border-color: var(--border) !important;
+}
+
+.card, .login-card, .stat-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+}
+
+.login-card {
+    max-width: 430px;
+    padding: 32px;
+    margin-top: 80px;
+}
+
+.stat-card {
+    padding: 22px;
+}
+
+.stat-card span {
+    display: block;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.stat-card strong {
+    font-size: 36px;
+}
+
+.stat-card.danger strong {
+    color: #dc3545;
+}
+
+.table {
+    color: var(--text);
+}
+
+.message {
+    border-left: 4px solid #0d6efd;
+    background: rgba(13, 110, 253, 0.06);
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+}
+
+.message.internal_note {
+    border-left-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+}
+
+a {
+    text-decoration: none;
+}
