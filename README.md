@@ -1,6 +1,6 @@
 # CTDesk
 
-Advanced Help Desk & Customer Support Ticketing System built with **Python**, **Flask**, and **SQLite**.
+Advanced Help Desk & Customer Support Ticketing System built with **Python**, **Flask** and **SQLite**.
 
 ---
 
@@ -132,4 +132,4 @@ Password: customer123
 
 ---
 
-CTDesk is a lightweight Help Desk application designed to demonstrate a complete ticket management workflow with authentication, role-based authorization, customer support, and administrative tools.
+CTDesk is a lightweight Help Desk application designed to demonstrate a complete ticket management workflow with authentication, role-based authorization, customer support and administrative tools.
