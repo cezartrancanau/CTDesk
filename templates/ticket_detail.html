@@ -18,16 +18,37 @@
         </div>
 
         <div class="card p-3 mb-3">
-            <h5>Add Reply / Internal Note</h5>
+            <h5>Add Reply{% if current_user.get('role') in ['admin', 'agent'] %} / Internal Note{% endif %}</h5>
             <form method="post">
                 <input type="hidden" name="action" value="message">
+                {% if current_user.get('role') in ['admin', 'agent'] %}
                 <select class="form-select mb-2" name="message_type">
                     <option value="public_reply">Public Reply</option>
                     <option value="internal_note">Internal Note</option>
                 </select>
+                {% endif %}
                 <textarea class="form-control mb-2" name="message" rows="4" required></textarea>
                 <button class="btn btn-primary">Add Message</button>
             </form>
+        </div>
+
+
+        <div class="card p-3 mb-3">
+            <h5>Attachments</h5>
+            <form method="post" enctype="multipart/form-data" class="mb-3">
+                <input type="hidden" name="action" value="attachment">
+                <input class="form-control mb-2" type="file" name="attachment" required>
+                <button class="btn btn-outline-primary">Upload Attachment</button>
+            </form>
+
+            {% for a in attachments %}
+            <div class="small mb-2">
+                <a href="{{ url_for('download_attachment', ticket_id=ticket.id, attachment_id=a.id) }}">{{ a.original_filename }}</a><br>
+                <span class="text-muted">Uploaded by {{ a.user_name }} · {{ a.uploaded_at }}</span>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No attachments yet.</p>
+            {% endfor %}
         </div>
 
         <div class="card p-3">
@@ -56,6 +77,7 @@
             </p>
         </div>
 
+        {% if current_user.get('role') in ['admin', 'agent'] %}
         <div class="card p-3 mb-3">
             <h5>Ticket Controls</h5>
             <form method="post">
@@ -86,6 +108,13 @@
                 <button class="btn btn-dark w-100">Update Ticket</button>
             </form>
         </div>
+        {% else %}
+        <div class="card p-3 mb-3">
+            <h5>Status</h5>
+            <p class="mb-1"><strong>{{ ticket.status }}</strong></p>
+            <p class="text-muted mb-0">Priority: {{ ticket.priority }}</p>
+        </div>
+        {% endif %}
 
         <div class="card p-3">
             <h5>Activity Log</h5>

@@ -10,8 +10,17 @@
     <div class="col"><div class="stat-card"><span>Open</span><strong>{{ stats.open }}</strong></div></div>
     <div class="col"><div class="stat-card"><span>In Progress</span><strong>{{ stats.progress }}</strong></div></div>
     <div class="col"><div class="stat-card"><span>Resolved</span><strong>{{ stats.resolved }}</strong></div></div>
+    <div class="col"><div class="stat-card"><span>Closed</span><strong>{{ stats.closed }}</strong></div></div>
+    <div class="col"><div class="stat-card danger"><span>High/Urgent</span><strong>{{ stats.high_priority }}</strong></div></div>
     <div class="col"><div class="stat-card danger"><span>SLA Overdue</span><strong>{{ stats.overdue }}</strong></div></div>
 </div>
+
+{% if current_user.get('role') != 'customer' %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card"><span>Customers</span><strong>{{ stats.customers }}</strong></div></div>
+    <div class="col-md-3"><div class="stat-card"><span>Staff Users</span><strong>{{ stats.agents }}</strong></div></div>
+</div>
+{% endif %}
 
 <div class="card">
     <div class="card-header fw-bold">Recent Tickets</div>

@@ -1,6 +1,6 @@
 import sqlite3
 from werkzeug.security import generate_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime
 
 DB_NAME = "ctdesk.db"
 
@@ -16,29 +16,32 @@ def init_db():
     cur = conn.cursor()
 
     cur.executescript("""
-    DROP TABLE IF EXISTS users;
-    DROP TABLE IF EXISTS customers;
-    DROP TABLE IF EXISTS tickets;
-    DROP TABLE IF EXISTS ticket_messages;
     DROP TABLE IF EXISTS activity_logs;
+    DROP TABLE IF EXISTS ticket_attachments;
+    DROP TABLE IF EXISTS ticket_messages;
+    DROP TABLE IF EXISTS tickets;
     DROP TABLE IF EXISTS knowledge_base;
+    DROP TABLE IF EXISTS customers;
+    DROP TABLE IF EXISTS users;
 
     CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         password_hash TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('admin', 'agent')),
+        role TEXT NOT NULL CHECK(role IN ('admin', 'agent', 'customer')),
         created_at TEXT NOT NULL
     );
 
     CREATE TABLE customers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL UNIQUE,
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         phone TEXT,
         company TEXT,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
     );
 
     CREATE TABLE tickets (
@@ -71,6 +74,17 @@ def init_db():
         FOREIGN KEY(user_id) REFERENCES users(id)
     );
 
+    CREATE TABLE ticket_attachments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticket_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        original_filename TEXT NOT NULL,
+        stored_filename TEXT NOT NULL,
+        uploaded_at TEXT NOT NULL,
+        FOREIGN KEY(ticket_id) REFERENCES tickets(id),
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    );
+
     CREATE TABLE activity_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ticket_id INTEGER NOT NULL,
@@ -97,6 +111,8 @@ def init_db():
     users = [
         ("Admin User", "admin@ctdesk.local", generate_password_hash("admin123"), "admin", now),
         ("Support Agent", "agent@ctdesk.local", generate_password_hash("agent123"), "agent", now),
+        ("Customer One", "customer1@ctdesk.local", generate_password_hash("customer123"), "customer", now),
+        ("Customer Two", "customer2@ctdesk.local", generate_password_hash("customer123"), "customer", now),
     ]
 
     cur.executemany(
@@ -105,67 +121,16 @@ def init_db():
     )
 
     customers = [
-        ("Maria Popescu", "maria@example.com", "+40711111111", "BlueSoft", now),
-        ("Andrei Ionescu", "andrei@example.com", "+40722222222", "TechNova", now),
-        ("Elena Marin", "elena@example.com", "+40733333333", "Freelancer", now),
+        (3, "Customer One", "customer1@ctdesk.local", "+40711111111", "BlueSoft", now),
+        (4, "Customer Two", "customer2@ctdesk.local", "+40722222222", "TechNova", now),
     ]
 
     cur.executemany(
-        "INSERT INTO customers (name, email, phone, company, created_at) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO customers (user_id, name, email, phone, company, created_at) VALUES (?, ?, ?, ?, ?, ?)",
         customers
     )
 
-    tickets = [
-        (
-            "Cannot access account",
-            "Customer reports being unable to log in after password reset.",
-            "Account Access",
-            "High",
-            "Open",
-            1,
-            2,
-            1,
-            now,
-            now,
-            (datetime.now() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S"),
-            None
-        ),
-        (
-            "Excel export not working",
-            "Export button generates an empty CSV file.",
-            "Software Issue",
-            "Medium",
-            "In Progress",
-            2,
-            2,
-            1,
-            now,
-            now,
-            (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
-            None
-        ),
-        (
-            "Question about invoice",
-            "Customer needs clarification about monthly invoice.",
-            "Billing",
-            "Low",
-            "Resolved",
-            3,
-            2,
-            1,
-            now,
-            now,
-            (datetime.now() + timedelta(hours=48)).strftime("%Y-%m-%d %H:%M:%S"),
-            now
-        ),
-    ]
-
-    cur.executemany("""
-        INSERT INTO tickets
-        (subject, description, category, priority, status, customer_id, assigned_to, created_by,
-         created_at, updated_at, sla_due_at, resolved_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, tickets)
+    # No default tickets are inserted. Customers can log in and create new tickets themselves.
 
     articles = [
         ("How to reset a password", "Account Access", "Steps: verify email, send reset link, confirm login, document the solution.", 1, now),

@@ -2,7 +2,7 @@
 {% block content %}
 <h1>Create Ticket</h1>
 
-<form method="post" class="card p-4">
+<form method="post" enctype="multipart/form-data" class="card p-4">
     <label class="form-label">Subject</label>
     <input class="form-control mb-3" name="subject" required>
 
@@ -24,6 +24,10 @@
         </div>
     </div>
 
+    <label class="form-label">Attachment optional</label>
+    <input class="form-control mb-3" type="file" name="attachment">
+
+    {% if current_user.get('role') in ['admin', 'agent'] %}
     <label class="form-label">Customer</label>
     <select class="form-select mb-3" name="customer_id">
         {% for c in customers %}
@@ -38,6 +42,9 @@
         <option value="{{ a.id }}">{{ a.name }}</option>
         {% endfor %}
     </select>
+    {% else %}
+    <p class="text-muted">The ticket will be created under your customer account.</p>
+    {% endif %}
 
     <button class="btn btn-primary">Create</button>
 </form>

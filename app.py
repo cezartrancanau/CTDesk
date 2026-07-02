@@ -1,16 +1,21 @@
 import csv
+import os
 import sqlite3
 from io import StringIO
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, Response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, send_from_directory, abort
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 DB_NAME = "ctdesk.db"
+UPLOAD_FOLDER = "uploads"
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "pdf", "txt", "log", "doc", "docx", "xls", "xlsx", "zip"}
 
 app = Flask(__name__)
 app.secret_key = "change-this-secret-key"
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 
 def db():
@@ -21,6 +26,54 @@ def db():
 
 def now():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def save_ticket_attachment(file, ticket_id, conn):
+    if not file or not file.filename:
+        return False
+
+    if not allowed_file(file.filename):
+        flash("Attachment type is not allowed.", "danger")
+        return False
+
+    original_filename = secure_filename(file.filename)
+    ticket_folder = os.path.join(app.config["UPLOAD_FOLDER"], "tickets", str(ticket_id))
+    os.makedirs(ticket_folder, exist_ok=True)
+
+    stored_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}_{original_filename}"
+    file.save(os.path.join(ticket_folder, stored_filename))
+
+    conn.execute("""
+        INSERT INTO ticket_attachments
+        (ticket_id, user_id, original_filename, stored_filename, uploaded_at)
+        VALUES (?, ?, ?, ?, ?)
+    """, (ticket_id, session["user_id"], original_filename, stored_filename, now()))
+    return True
+
+
+def ensure_schema():
+    conn = db()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ticket_attachments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            original_filename TEXT NOT NULL,
+            stored_filename TEXT NOT NULL,
+            uploaded_at TEXT NOT NULL,
+            FOREIGN KEY(ticket_id) REFERENCES tickets(id),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+ensure_schema()
 
 
 def calculate_sla(priority):
@@ -50,6 +103,23 @@ def admin_required(fn):
             return redirect(url_for("dashboard"))
         return fn(*args, **kwargs)
     return wrapper
+
+
+def staff_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if session.get("role") not in ("admin", "agent"):
+            flash("Staff access required.", "danger")
+            return redirect(url_for("dashboard"))
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def get_customer_id_for_user(conn):
+    if session.get("role") != "customer":
+        return None
+    customer = conn.execute("SELECT id FROM customers WHERE user_id = ?", (session["user_id"],)).fetchone()
+    return customer["id"] if customer else None
 
 
 def log_activity(ticket_id, action):
@@ -88,6 +158,13 @@ def login():
             session["user_id"] = user["id"]
             session["name"] = user["name"]
             session["role"] = user["role"]
+
+            if user["role"] == "customer":
+                conn = db()
+                customer = conn.execute("SELECT id FROM customers WHERE user_id = ?", (user["id"],)).fetchone()
+                conn.close()
+                session["customer_id"] = customer["id"] if customer else None
+
             flash("Logged in successfully.", "success")
             return redirect(url_for("dashboard"))
 
@@ -107,30 +184,38 @@ def logout():
 @login_required
 def dashboard():
     conn = db()
+    customer_id = get_customer_id_for_user(conn)
+    where_sql = "WHERE customer_id = ?" if session.get("role") == "customer" else ""
+    params = [customer_id] if session.get("role") == "customer" else []
 
     stats = {
-        "total": conn.execute("SELECT COUNT(*) FROM tickets").fetchone()[0],
-        "open": conn.execute("SELECT COUNT(*) FROM tickets WHERE status='Open'").fetchone()[0],
-        "progress": conn.execute("SELECT COUNT(*) FROM tickets WHERE status='In Progress'").fetchone()[0],
-        "resolved": conn.execute("SELECT COUNT(*) FROM tickets WHERE status='Resolved'").fetchone()[0],
-        "closed": conn.execute("SELECT COUNT(*) FROM tickets WHERE status='Closed'").fetchone()[0],
-        "overdue": conn.execute("SELECT COUNT(*) FROM tickets WHERE status NOT IN ('Resolved', 'Closed') AND sla_due_at < ?", (now(),)).fetchone()[0],
+        "total": conn.execute(f"SELECT COUNT(*) FROM tickets {where_sql}", params).fetchone()[0],
+        "open": conn.execute(f"SELECT COUNT(*) FROM tickets {where_sql} {'AND' if where_sql else 'WHERE'} status='Open'", params).fetchone()[0],
+        "progress": conn.execute(f"SELECT COUNT(*) FROM tickets {where_sql} {'AND' if where_sql else 'WHERE'} status='In Progress'", params).fetchone()[0],
+        "resolved": conn.execute(f"SELECT COUNT(*) FROM tickets {where_sql} {'AND' if where_sql else 'WHERE'} status='Resolved'", params).fetchone()[0],
+        "closed": conn.execute(f"SELECT COUNT(*) FROM tickets {where_sql} {'AND' if where_sql else 'WHERE'} status='Closed'", params).fetchone()[0],
+        "high_priority": conn.execute(f"SELECT COUNT(*) FROM tickets {where_sql} {'AND' if where_sql else 'WHERE'} priority IN ('High', 'Urgent')", params).fetchone()[0],
+        "overdue": conn.execute(f"SELECT COUNT(*) FROM tickets {where_sql} {'AND' if where_sql else 'WHERE'} status NOT IN ('Resolved', 'Closed') AND sla_due_at < ?", params + [now()]).fetchone()[0],
+        "customers": conn.execute("SELECT COUNT(*) FROM customers").fetchone()[0] if session.get("role") != "customer" else 1,
+        "agents": conn.execute("SELECT COUNT(*) FROM users WHERE role IN ('admin', 'agent')").fetchone()[0] if session.get("role") != "customer" else 0,
     }
 
-    recent_tickets = conn.execute("""
+    recent_tickets = conn.execute(f"""
         SELECT t.*, c.name AS customer_name, u.name AS agent_name
         FROM tickets t
         JOIN customers c ON c.id = t.customer_id
         LEFT JOIN users u ON u.id = t.assigned_to
+        {where_sql}
         ORDER BY t.created_at DESC
         LIMIT 8
-    """).fetchall()
+    """, params).fetchall()
 
-    priority_rows = conn.execute("""
+    priority_rows = conn.execute(f"""
         SELECT priority, COUNT(*) AS count
         FROM tickets
+        {where_sql}
         GROUP BY priority
-    """).fetchall()
+    """, params).fetchall()
 
     conn.close()
     return render_template("dashboard.html", stats=stats, recent_tickets=recent_tickets, priority_rows=priority_rows)
@@ -152,10 +237,14 @@ def tickets():
     """
     params = []
 
+    if session.get("role") == "customer":
+        query += " AND t.customer_id = ?"
+        params.append(session.get("customer_id"))
+
     if q:
-        query += " AND (t.subject LIKE ? OR t.description LIKE ? OR c.name LIKE ? OR c.email LIKE ?)"
+        query += " AND (CAST(t.id AS TEXT) LIKE ? OR t.subject LIKE ? OR t.description LIKE ? OR c.name LIKE ? OR c.email LIKE ?)"
         like = f"%{q}%"
-        params.extend([like, like, like, like])
+        params.extend([like, like, like, like, like])
 
     if status:
         query += " AND t.status = ?"
@@ -186,8 +275,13 @@ def create_ticket():
         description = request.form["description"]
         category = request.form["category"]
         priority = request.form["priority"]
-        customer_id = request.form["customer_id"]
-        assigned_to = request.form.get("assigned_to") or None
+
+        if session.get("role") == "customer":
+            customer_id = session.get("customer_id")
+            assigned_to = None
+        else:
+            customer_id = request.form["customer_id"]
+            assigned_to = request.form.get("assigned_to") or None
 
         cur = conn.execute("""
             INSERT INTO tickets
@@ -200,11 +294,19 @@ def create_ticket():
         ))
 
         ticket_id = cur.lastrowid
+
+        attachment = request.files.get("attachment")
+        attachment_saved = save_ticket_attachment(attachment, ticket_id, conn)
+
         conn.commit()
         conn.close()
 
         log_activity(ticket_id, "Ticket created")
-        flash("Ticket created successfully.", "success")
+        if attachment_saved:
+            log_activity(ticket_id, "Attachment uploaded")
+        log_activity(ticket_id, "Fake email notification sent to support team")
+        print(f"[FAKE EMAIL] New ticket #{ticket_id} created. Notification sent to support team.")
+        flash("Ticket created successfully. Fake email notification sent to support team.", "success")
         return redirect(url_for("ticket_detail", ticket_id=ticket_id))
 
     conn.close()
@@ -216,10 +318,26 @@ def create_ticket():
 def ticket_detail(ticket_id):
     conn = db()
 
+    existing_ticket = conn.execute("SELECT customer_id FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
+    if not existing_ticket:
+        conn.close()
+        flash("Ticket not found.", "danger")
+        return redirect(url_for("tickets"))
+
+    if session.get("role") == "customer" and existing_ticket["customer_id"] != session.get("customer_id"):
+        conn.close()
+        flash("You can only view your own tickets.", "danger")
+        return redirect(url_for("tickets"))
+
     if request.method == "POST":
         action = request.form.get("action")
 
         if action == "update":
+            if session.get("role") not in ("admin", "agent"):
+                flash("Only staff can update ticket status, priority or assigned agent.", "danger")
+                conn.close()
+                return redirect(url_for("ticket_detail", ticket_id=ticket_id))
+
             old = conn.execute("SELECT * FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
 
             status = request.form["status"]
@@ -241,9 +359,21 @@ def ticket_detail(ticket_id):
             conn.commit()
             log_activity(ticket_id, f"Ticket updated: status={status}, priority={priority}")
 
+        elif action == "attachment":
+            attachment = request.files.get("attachment")
+            if save_ticket_attachment(attachment, ticket_id, conn):
+                conn.execute("UPDATE tickets SET updated_at=? WHERE id=?", (now(), ticket_id))
+                conn.commit()
+                log_activity(ticket_id, "Attachment uploaded")
+                flash("Attachment uploaded.", "success")
+            else:
+                conn.commit()
+
         elif action == "message":
             message = request.form["message"]
-            message_type = request.form["message_type"]
+            message_type = request.form.get("message_type", "public_reply")
+            if session.get("role") == "customer":
+                message_type = "public_reply"
 
             conn.execute("""
                 INSERT INTO ticket_messages (ticket_id, user_id, message, message_type, created_at)
@@ -274,7 +404,16 @@ def ticket_detail(ticket_id):
         FROM ticket_messages m
         JOIN users u ON u.id = m.user_id
         WHERE m.ticket_id=?
+        {message_filter}
         ORDER BY m.created_at ASC
+    """.format(message_filter="AND m.message_type != 'internal_note'" if session.get("role") == "customer" else ""), (ticket_id,)).fetchall()
+
+    attachments = conn.execute("""
+        SELECT a.*, u.name AS user_name
+        FROM ticket_attachments a
+        JOIN users u ON u.id = a.user_id
+        WHERE a.ticket_id=?
+        ORDER BY a.uploaded_at DESC
     """, (ticket_id,)).fetchall()
 
     logs = conn.execute("""
@@ -298,6 +437,7 @@ def ticket_detail(ticket_id):
         ticket=ticket,
         agents=agents,
         messages=messages,
+        attachments=attachments,
         logs=logs,
         overdue=overdue
     )
@@ -305,22 +445,39 @@ def ticket_detail(ticket_id):
 
 @app.route("/customers", methods=["GET", "POST"])
 @login_required
+@staff_required
 def customers():
     conn = db()
 
     if request.method == "POST":
-        conn.execute("""
-            INSERT INTO customers (name, email, phone, company, created_at)
-            VALUES (?, ?, ?, ?, ?)
+        customer_name = request.form["name"]
+        customer_email = request.form["email"].strip().lower()
+        customer_password = request.form.get("password") or "customer123"
+
+        cur = conn.execute("""
+            INSERT INTO users (name, email, password_hash, role, created_at)
+            VALUES (?, ?, ?, 'customer', ?)
         """, (
-            request.form["name"],
-            request.form["email"],
+            customer_name,
+            customer_email,
+            generate_password_hash(customer_password),
+            now()
+        ))
+        user_id = cur.lastrowid
+
+        conn.execute("""
+            INSERT INTO customers (user_id, name, email, phone, company, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            user_id,
+            customer_name,
+            customer_email,
             request.form["phone"],
             request.form["company"],
             now()
         ))
         conn.commit()
-        flash("Customer added.", "success")
+        flash("Customer account added.", "success")
 
     rows = conn.execute("SELECT * FROM customers ORDER BY created_at DESC").fetchall()
     conn.close()
@@ -329,10 +486,16 @@ def customers():
 
 @app.route("/knowledge-base", methods=["GET", "POST"])
 @login_required
+@staff_required
 def knowledge_base():
     conn = db()
 
     if request.method == "POST":
+        if session.get("role") != "admin":
+            flash("Only admins can create knowledge base articles.", "danger")
+            conn.close()
+            return redirect(url_for("knowledge_base"))
+
         conn.execute("""
             INSERT INTO knowledge_base (title, category, content, created_by, created_at)
             VALUES (?, ?, ?, ?, ?)
@@ -381,18 +544,48 @@ def users():
     return render_template("users.html", users=rows)
 
 
+@app.route("/tickets/<int:ticket_id>/attachments/<int:attachment_id>")
+@login_required
+def download_attachment(ticket_id, attachment_id):
+    conn = db()
+    ticket = conn.execute("SELECT customer_id FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
+    if not ticket:
+        conn.close()
+        abort(404)
+
+    if session.get("role") == "customer" and ticket["customer_id"] != session.get("customer_id"):
+        conn.close()
+        flash("You can only download attachments from your own tickets.", "danger")
+        return redirect(url_for("tickets"))
+
+    attachment = conn.execute(
+        "SELECT * FROM ticket_attachments WHERE id = ? AND ticket_id = ?",
+        (attachment_id, ticket_id)
+    ).fetchone()
+    conn.close()
+
+    if not attachment:
+        abort(404)
+
+    folder = os.path.join(app.config["UPLOAD_FOLDER"], "tickets", str(ticket_id))
+    return send_from_directory(folder, attachment["stored_filename"], as_attachment=True, download_name=attachment["original_filename"])
+
+
 @app.route("/export/tickets.csv")
 @login_required
 def export_tickets():
     conn = db()
-    rows = conn.execute("""
+    where_sql = "WHERE t.customer_id = ?" if session.get("role") == "customer" else ""
+    params = [session.get("customer_id")] if session.get("role") == "customer" else []
+    rows = conn.execute(f"""
         SELECT t.id, t.subject, t.category, t.priority, t.status, c.name AS customer,
                c.email AS customer_email, u.name AS agent, t.created_at, t.updated_at, t.sla_due_at, t.resolved_at
         FROM tickets t
         JOIN customers c ON c.id = t.customer_id
         LEFT JOIN users u ON u.id = t.assigned_to
+        {where_sql}
         ORDER BY t.created_at DESC
-    """).fetchall()
+    """, params).fetchall()
     conn.close()
 
     output = StringIO()

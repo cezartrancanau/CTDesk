@@ -9,7 +9,7 @@
 </div>
 
 <form class="row g-2 mb-3">
-    <div class="col-md-5"><input class="form-control" name="q" placeholder="Search subject, description, customer..." value="{{ q }}"></div>
+    <div class="col-md-5"><input class="form-control" name="q" placeholder="Search ticket ID, subject, description, customer..." value="{{ q }}"></div>
     <div class="col-md-2">
         <select class="form-select" name="status">
             <option value="">All statuses</option>
@@ -42,6 +42,8 @@
         <td>{{ t.agent_name or "Unassigned" }}</td>
         <td>{{ t.updated_at }}</td>
     </tr>
+    {% else %}
+    <tr><td colspan="7" class="text-muted text-center p-4">No tickets found.</td></tr>
     {% endfor %}
 </table>
 </div>

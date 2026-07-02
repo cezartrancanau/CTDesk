@@ -3,6 +3,7 @@
 <h1>Knowledge Base</h1>
 
 <div class="row g-3">
+    {% if current_user.get('role') == 'admin' %}
     <div class="col-md-4">
         <form method="post" class="card p-3">
             <h5>New Article</h5>
@@ -12,8 +13,9 @@
             <button class="btn btn-primary">Add Article</button>
         </form>
     </div>
+    {% endif %}
 
-    <div class="col-md-8">
+    <div class="{% if current_user.get('role') == 'admin' %}col-md-8{% else %}col-md-12{% endif %}">
         {% for a in articles %}
         <div class="card p-3 mb-3">
             <h5>{{ a.title }}</h5>
