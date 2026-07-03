@@ -4,6 +4,9 @@
     <div>
         <h1>#{{ ticket.id }} {{ ticket.subject }}</h1>
         <p class="text-muted">{{ ticket.category }} · Created {{ ticket.created_at }}</p>
+        {% if ticket_tags %}
+        <p>{% for tag in ticket_tags.split(', ') %}<span class="badge rounded-pill text-bg-light border">{{ tag }}</span> {% endfor %}</p>
+        {% endif %}
     </div>
     {% if overdue %}
     <div class="alert alert-danger">SLA overdue</div>
@@ -16,6 +19,16 @@
             <h5>Description</h5>
             <p>{{ ticket.description }}</p>
         </div>
+
+        {% if ticket.status in ['Resolved', 'Closed'] %}
+        <div class="card p-3 mb-3">
+            <h5>Issue not fixed?</h5>
+            <form method="post">
+                <input type="hidden" name="action" value="reopen">
+                <button class="btn btn-warning">Reopen Ticket</button>
+            </form>
+        </div>
+        {% endif %}
 
         <div class="card p-3 mb-3">
             <h5>Add Reply{% if current_user.get('role') in ['admin', 'agent'] %} / Internal Note{% endif %}</h5>
@@ -31,7 +44,6 @@
                 <button class="btn btn-primary">Add Message</button>
             </form>
         </div>
-
 
         <div class="card p-3 mb-3">
             <h5>Attachments</h5>
@@ -96,6 +108,16 @@
                     <option {% if ticket.priority == p %}selected{% endif %}>{{ p }}</option>
                     {% endfor %}
                 </select>
+
+                <label class="form-label">Category</label>
+                <select class="form-select mb-2" name="category">
+                    {% for c in ["Hardware", "Software", "Network", "Account", "Printer", "Other"] %}
+                    <option {% if ticket.category == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+
+                <label class="form-label">Tags</label>
+                <input class="form-control mb-2" name="tags" value="{{ ticket_tags }}" placeholder="printer, vpn, urgent">
 
                 <label class="form-label">Assigned Agent</label>
                 <select class="form-select mb-3" name="assigned_to">

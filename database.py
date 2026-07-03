@@ -19,6 +19,7 @@ def init_db():
     DROP TABLE IF EXISTS activity_logs;
     DROP TABLE IF EXISTS ticket_attachments;
     DROP TABLE IF EXISTS ticket_messages;
+    DROP TABLE IF EXISTS ticket_tags;
     DROP TABLE IF EXISTS tickets;
     DROP TABLE IF EXISTS knowledge_base;
     DROP TABLE IF EXISTS customers;
@@ -83,6 +84,14 @@ def init_db():
         uploaded_at TEXT NOT NULL,
         FOREIGN KEY(ticket_id) REFERENCES tickets(id),
         FOREIGN KEY(user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE ticket_tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticket_id INTEGER NOT NULL,
+        tag TEXT NOT NULL,
+        FOREIGN KEY(ticket_id) REFERENCES tickets(id),
+        UNIQUE(ticket_id, tag)
     );
 
     CREATE TABLE activity_logs (

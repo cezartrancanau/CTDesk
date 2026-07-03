@@ -69,8 +69,49 @@ def ensure_schema():
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ticket_tags (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id INTEGER NOT NULL,
+            tag TEXT NOT NULL,
+            FOREIGN KEY(ticket_id) REFERENCES tickets(id),
+            UNIQUE(ticket_id, tag)
+        )
+    """)
     conn.commit()
     conn.close()
+
+
+def parse_tags(raw_tags):
+    tags = []
+    for tag in raw_tags.split(','):
+        clean = tag.strip().lower().replace(' ', '-')
+        if clean and clean not in tags:
+            tags.append(clean[:30])
+    return tags[:8]
+
+
+def save_ticket_tags(conn, ticket_id, raw_tags):
+    conn.execute("DELETE FROM ticket_tags WHERE ticket_id = ?", (ticket_id,))
+    for tag in parse_tags(raw_tags or ''):
+        conn.execute("INSERT OR IGNORE INTO ticket_tags (ticket_id, tag) VALUES (?, ?)", (ticket_id, tag))
+
+
+def filter_label(q, status, priority, category, tag, quick):
+    active = []
+    if q:
+        active.append(f"search: {q}")
+    if status:
+        active.append(f"status: {status}")
+    if priority:
+        active.append(f"priority: {priority}")
+    if category:
+        active.append(f"category: {category}")
+    if tag:
+        active.append(f"tag: {tag}")
+    if quick:
+        active.append(f"quick: {quick}")
+    return ", ".join(active) if active else "all tickets"
 
 
 ensure_schema()
@@ -215,10 +256,47 @@ def dashboard():
         FROM tickets
         {where_sql}
         GROUP BY priority
+        ORDER BY count DESC
     """, params).fetchall()
 
+    status_rows = conn.execute(f"""
+        SELECT status, COUNT(*) AS count
+        FROM tickets
+        {where_sql}
+        GROUP BY status
+        ORDER BY count DESC
+    """, params).fetchall()
+
+    category_rows = conn.execute(f"""
+        SELECT category, COUNT(*) AS count
+        FROM tickets
+        {where_sql}
+        GROUP BY category
+        ORDER BY count DESC
+        LIMIT 6
+    """, params).fetchall()
+
+    agent_rows = []
+    if session.get("role") != "customer":
+        agent_rows = conn.execute("""
+            SELECT COALESCE(u.name, 'Unassigned') AS agent_name, COUNT(t.id) AS count
+            FROM tickets t
+            LEFT JOIN users u ON u.id = t.assigned_to
+            WHERE t.status NOT IN ('Resolved', 'Closed')
+            GROUP BY COALESCE(u.name, 'Unassigned')
+            ORDER BY count DESC
+        """).fetchall()
+
     conn.close()
-    return render_template("dashboard.html", stats=stats, recent_tickets=recent_tickets, priority_rows=priority_rows)
+    return render_template(
+        "dashboard.html",
+        stats=stats,
+        recent_tickets=recent_tickets,
+        priority_rows=priority_rows,
+        status_rows=status_rows,
+        category_rows=category_rows,
+        agent_rows=agent_rows
+    )
 
 
 @app.route("/tickets")
@@ -227,12 +305,17 @@ def tickets():
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "").strip()
     priority = request.args.get("priority", "").strip()
+    category = request.args.get("category", "").strip()
+    tag = request.args.get("tag", "").strip().lower()
+    quick = request.args.get("quick", "").strip()
 
     query = """
-        SELECT t.*, c.name AS customer_name, c.email AS customer_email, u.name AS agent_name
+        SELECT t.*, c.name AS customer_name, c.email AS customer_email, u.name AS agent_name,
+               GROUP_CONCAT(tt.tag, ', ') AS tags
         FROM tickets t
         JOIN customers c ON c.id = t.customer_id
         LEFT JOIN users u ON u.id = t.assigned_to
+        LEFT JOIN ticket_tags tt ON tt.ticket_id = t.id
         WHERE 1=1
     """
     params = []
@@ -254,13 +337,40 @@ def tickets():
         query += " AND t.priority = ?"
         params.append(priority)
 
-    query += " ORDER BY t.updated_at DESC"
+    if category:
+        query += " AND t.category = ?"
+        params.append(category)
+
+    if tag:
+        query += " AND EXISTS (SELECT 1 FROM ticket_tags x WHERE x.ticket_id = t.id AND x.tag = ?)"
+        params.append(tag)
+
+    if quick == "my" and session.get("role") in ("admin", "agent"):
+        query += " AND t.assigned_to = ?"
+        params.append(session.get("user_id"))
+    elif quick == "high":
+        query += " AND t.priority IN ('High', 'Urgent')"
+    elif quick == "overdue":
+        query += " AND t.status NOT IN ('Resolved', 'Closed') AND t.sla_due_at < ?"
+        params.append(now())
+    elif quick == "unassigned" and session.get("role") in ("admin", "agent"):
+        query += " AND t.assigned_to IS NULL"
+    elif quick == "open":
+        query += " AND t.status IN ('Open', 'In Progress')"
+
+    query += " GROUP BY t.id ORDER BY t.updated_at DESC"
 
     conn = db()
     rows = conn.execute(query, params).fetchall()
+    categories = conn.execute("SELECT DISTINCT category FROM tickets ORDER BY category").fetchall()
+    tags = conn.execute("SELECT tag, COUNT(*) AS count FROM ticket_tags GROUP BY tag ORDER BY count DESC, tag LIMIT 20").fetchall()
     conn.close()
 
-    return render_template("tickets.html", tickets=rows, q=q, status=status, priority=priority)
+    return render_template(
+        "tickets.html", tickets=rows, q=q, status=status, priority=priority,
+        category=category, tag=tag, quick=quick, categories=categories, tags=tags,
+        filter_label=filter_label(q, status, priority, category, tag, quick)
+    )
 
 
 @app.route("/tickets/create", methods=["GET", "POST"])
@@ -275,6 +385,7 @@ def create_ticket():
         description = request.form["description"]
         category = request.form["category"]
         priority = request.form["priority"]
+        tags = request.form.get("tags", "")
 
         if session.get("role") == "customer":
             customer_id = session.get("customer_id")
@@ -294,6 +405,7 @@ def create_ticket():
         ))
 
         ticket_id = cur.lastrowid
+        save_ticket_tags(conn, ticket_id, tags)
 
         attachment = request.files.get("attachment")
         attachment_saved = save_ticket_attachment(attachment, ticket_id, conn)
@@ -343,6 +455,8 @@ def ticket_detail(ticket_id):
             status = request.form["status"]
             priority = request.form["priority"]
             assigned_to = request.form.get("assigned_to") or None
+            category = request.form.get("category", old["category"])
+            tags = request.form.get("tags", "")
 
             resolved_at = old["resolved_at"]
             if status in ("Resolved", "Closed") and not resolved_at:
@@ -352,12 +466,27 @@ def ticket_detail(ticket_id):
 
             conn.execute("""
                 UPDATE tickets
-                SET status=?, priority=?, assigned_to=?, updated_at=?, resolved_at=?
+                SET status=?, priority=?, category=?, assigned_to=?, updated_at=?, resolved_at=?
                 WHERE id=?
-            """, (status, priority, assigned_to, now(), resolved_at, ticket_id))
+            """, (status, priority, category, assigned_to, now(), resolved_at, ticket_id))
+            save_ticket_tags(conn, ticket_id, tags)
 
             conn.commit()
-            log_activity(ticket_id, f"Ticket updated: status={status}, priority={priority}")
+            log_activity(ticket_id, f"Ticket updated: status={status}, priority={priority}, category={category}")
+
+        elif action == "reopen":
+            current = conn.execute("SELECT status FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
+            if current and current["status"] in ("Resolved", "Closed"):
+                conn.execute("""
+                    UPDATE tickets
+                    SET status='Open', resolved_at=NULL, updated_at=?
+                    WHERE id=?
+                """, (now(), ticket_id))
+                conn.commit()
+                log_activity(ticket_id, "Ticket reopened")
+                flash("Ticket reopened.", "success")
+            else:
+                flash("Only resolved or closed tickets can be reopened.", "warning")
 
         elif action == "attachment":
             attachment = request.files.get("attachment")
@@ -416,6 +545,9 @@ def ticket_detail(ticket_id):
         ORDER BY a.uploaded_at DESC
     """, (ticket_id,)).fetchall()
 
+    tag_rows = conn.execute("SELECT tag FROM ticket_tags WHERE ticket_id=? ORDER BY tag", (ticket_id,)).fetchall()
+    ticket_tags = ", ".join([r["tag"] for r in tag_rows])
+
     logs = conn.execute("""
         SELECT l.*, u.name AS user_name
         FROM activity_logs l
@@ -439,7 +571,8 @@ def ticket_detail(ticket_id):
         messages=messages,
         attachments=attachments,
         logs=logs,
-        overdue=overdue
+        overdue=overdue,
+        ticket_tags=ticket_tags
     )
 
 
@@ -574,23 +707,66 @@ def download_attachment(ticket_id, attachment_id):
 @app.route("/export/tickets.csv")
 @login_required
 def export_tickets():
-    conn = db()
-    where_sql = "WHERE t.customer_id = ?" if session.get("role") == "customer" else ""
-    params = [session.get("customer_id")] if session.get("role") == "customer" else []
-    rows = conn.execute(f"""
+    q = request.args.get("q", "").strip()
+    status = request.args.get("status", "").strip()
+    priority = request.args.get("priority", "").strip()
+    category = request.args.get("category", "").strip()
+    tag = request.args.get("tag", "").strip().lower()
+    quick = request.args.get("quick", "").strip()
+
+    query = """
         SELECT t.id, t.subject, t.category, t.priority, t.status, c.name AS customer,
-               c.email AS customer_email, u.name AS agent, t.created_at, t.updated_at, t.sla_due_at, t.resolved_at
+               c.email AS customer_email, u.name AS agent, GROUP_CONCAT(tt.tag, ', ') AS tags,
+               t.created_at, t.updated_at, t.sla_due_at, t.resolved_at
         FROM tickets t
         JOIN customers c ON c.id = t.customer_id
         LEFT JOIN users u ON u.id = t.assigned_to
-        {where_sql}
-        ORDER BY t.created_at DESC
-    """, params).fetchall()
+        LEFT JOIN ticket_tags tt ON tt.ticket_id = t.id
+        WHERE 1=1
+    """
+    params = []
+
+    if session.get("role") == "customer":
+        query += " AND t.customer_id = ?"
+        params.append(session.get("customer_id"))
+    if q:
+        query += " AND (CAST(t.id AS TEXT) LIKE ? OR t.subject LIKE ? OR t.description LIKE ? OR c.name LIKE ? OR c.email LIKE ?)"
+        like = f"%{q}%"
+        params.extend([like, like, like, like, like])
+    if status:
+        query += " AND t.status = ?"
+        params.append(status)
+    if priority:
+        query += " AND t.priority = ?"
+        params.append(priority)
+    if category:
+        query += " AND t.category = ?"
+        params.append(category)
+    if tag:
+        query += " AND EXISTS (SELECT 1 FROM ticket_tags x WHERE x.ticket_id = t.id AND x.tag = ?)"
+        params.append(tag)
+    if quick == "my" and session.get("role") in ("admin", "agent"):
+        query += " AND t.assigned_to = ?"
+        params.append(session.get("user_id"))
+    elif quick == "high":
+        query += " AND t.priority IN ('High', 'Urgent')"
+    elif quick == "overdue":
+        query += " AND t.status NOT IN ('Resolved', 'Closed') AND t.sla_due_at < ?"
+        params.append(now())
+    elif quick == "unassigned" and session.get("role") in ("admin", "agent"):
+        query += " AND t.assigned_to IS NULL"
+    elif quick == "open":
+        query += " AND t.status IN ('Open', 'In Progress')"
+
+    query += " GROUP BY t.id ORDER BY t.created_at DESC"
+
+    conn = db()
+    rows = conn.execute(query, params).fetchall()
     conn.close()
 
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Subject", "Category", "Priority", "Status", "Customer", "Customer Email", "Agent", "Created", "Updated", "SLA Due", "Resolved"])
+    writer.writerow(["ID", "Subject", "Category", "Priority", "Status", "Customer", "Customer Email", "Agent", "Tags", "Created", "Updated", "SLA Due", "Resolved"])
 
     for r in rows:
         writer.writerow(list(r))

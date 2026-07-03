@@ -2,6 +2,8 @@
 
 Advanced Help Desk & Customer Support Ticketing System built with **Python**, **Flask** and **SQLite**.
 
+CTDesk is a lightweight portfolio project that demonstrates a complete support workflow with authentication, role-based access, tickets, customers, replies, attachments, SLA tracking, dashboards and CSV export.
+
 ---
 
 ## Features
@@ -9,7 +11,6 @@ Advanced Help Desk & Customer Support Ticketing System built with **Python**, **
 ### Authentication & Roles
 - Secure login system
 - Admin, Agent and Customer roles
-- Customer self-registration
 - Role-based permissions
 
 ### Ticket Management
@@ -20,6 +21,9 @@ Advanced Help Desk & Customer Support Ticketing System built with **Python**, **
 - Public replies and internal notes
 - File attachments
 - Activity history
+- Ticket categories: Hardware, Software, Network, Account, Printer and Other
+- Ticket tags such as `printer`, `vpn`, `outlook` or `urgent`
+- Reopen button for resolved or closed tickets
 
 ### Customer Portal
 - Customers can create support tickets
@@ -27,25 +31,56 @@ Advanced Help Desk & Customer Support Ticketing System built with **Python**, **
 - Dedicated customer dashboard
 
 ### Knowledge Base
-- Admin can create, edit and delete articles
+- Admin can create articles
 - Agents have read-only access
 - Customers cannot access the Knowledge Base
 
 ### Dashboard
 - Ticket statistics
 - Open/Closed ticket overview
-- Search tickets
-- Filter by status and priority
+- Tickets by status
+- Tickets by category
+- Agent workload overview
+- High priority and SLA overdue counters
+
+### Search, Filters & Export
+- Search by ticket ID, subject, description or customer
+- Filter by status, priority, category and tag
+- Quick filters: My Tickets, High Priority, Overdue, Unassigned and Open/In Progress
+- CSV export uses the currently selected filters
 
 ### Other Features
 - Customer database
-- CSV export
 - Light/Dark mode
 - Fake email notification simulation
+- Windows `.bat` runner included
 
 ---
 
-# How to run
+## How to run
+
+### Option 1: Windows quick start
+
+Double-click:
+
+```text
+run_ctdesk.bat
+```
+
+The script will:
+
+1. Create a virtual environment if missing
+2. Install the requirements
+3. Create the database if missing
+4. Start the Flask app
+
+Then open:
+
+```text
+http://127.0.0.1:5000
+```
+
+### Option 2: Manual start
 
 ```bash
 pip install -r requirements.txt
@@ -61,23 +96,23 @@ http://127.0.0.1:5000
 
 ---
 
-# Default Accounts
+## Default Accounts
 
-## Administrator
+### Administrator
 
 ```text
 Email: admin@ctdesk.local
 Password: admin123
 ```
 
-## Agent
+### Agent
 
 ```text
 Email: agent@ctdesk.local
 Password: agent123
 ```
 
-## Customers
+### Customers
 
 ```text
 Email: customer1@ctdesk.local
@@ -91,12 +126,11 @@ Password: customer123
 
 ---
 
-# Tech Stack
+## Tech Stack
 
 - Python
 - Flask
 - SQLite
-- SQLAlchemy
 - Jinja2
 - HTML5
 - CSS3
@@ -105,12 +139,11 @@ Password: customer123
 
 ---
 
-# v1.0 Update
+## v1.0 Update
 
-## Added
+### Added
 
 - Customer authentication system
-- Customer self-registration
 - Customer support portal
 - Ticket conversation/comments
 - File attachment support
@@ -120,16 +153,47 @@ Password: customer123
 - Simulated email notifications
 - Role-based Knowledge Base permissions
 
-## Changed
+### Changed
 
 - Removed demo tickets
 - Simplified initial database
 - Customers can only access their own tickets
 - Knowledge Base is now:
-  - **Admin:** full access
-  - **Agent:** read-only
+  - **Admin:** can create articles
+  - **Agent:** read-only access
   - **Customer:** no access
 
 ---
 
-CTDesk is a lightweight Help Desk application designed to demonstrate a complete ticket management workflow with authentication, role-based authorization, customer support and administrative tools.
+## v2.0 Update
+
+### Added
+
+- Ticket categories as a controlled dropdown
+- Ticket tags for easier organization and filtering
+- Reopen ticket functionality for resolved or closed tickets
+- Quick filters for common support views:
+  - My Tickets
+  - High Priority
+  - Overdue
+  - Unassigned
+  - Open/In Progress
+- Improved dashboard statistics:
+  - Tickets by status
+  - Tickets by category
+  - Agent workload overview
+- Filtered CSV export
+- Dark mode readability fixes so all dashboard, table, card and form text remains visible
+
+### Improved
+
+- Ticket list now displays category and tags
+- Ticket detail page now allows staff to update category and tags
+- CSV export now respects the filters selected on the Tickets page
+- Dark mode CSS improved: fixed black text on dark backgrounds in cards, tables, forms and navigation
+
+---
+
+## Project Goal
+
+CTDesk is designed as a practical help desk project for demonstrating IT support, technical support and customer support workflows. It focuses on realistic ticket management features while keeping the stack simple and beginner-friendly.

@@ -10,17 +10,25 @@
     <textarea class="form-control mb-3" name="description" rows="5" required></textarea>
 
     <div class="row">
-        <div class="col">
+        <div class="col-md-4">
             <label class="form-label">Category</label>
-            <input class="form-control mb-3" name="category" placeholder="Software Issue, Billing, Account Access..." required>
+            <select class="form-select mb-3" name="category" required>
+                {% for c in ["Hardware", "Software", "Network", "Account", "Printer", "Other"] %}
+                <option>{{ c }}</option>
+                {% endfor %}
+            </select>
         </div>
-        <div class="col">
+        <div class="col-md-4">
             <label class="form-label">Priority</label>
             <select class="form-select mb-3" name="priority">
                 {% for p in ["Low", "Medium", "High", "Urgent"] %}
                 <option>{{ p }}</option>
                 {% endfor %}
             </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Tags optional</label>
+            <input class="form-control mb-3" name="tags" placeholder="printer, vpn, outlook">
         </div>
     </div>
 

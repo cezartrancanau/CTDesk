@@ -22,6 +22,39 @@
 </div>
 {% endif %}
 
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card p-3 h-100">
+            <h5>Tickets by Status</h5>
+            {% for r in status_rows %}
+            <div class="d-flex justify-content-between border-bottom py-1"><span>{{ r.status }}</span><strong>{{ r.count }}</strong></div>
+            {% else %}<p class="text-muted mb-0">No data yet.</p>{% endfor %}
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 h-100">
+            <h5>Tickets by Category</h5>
+            {% for r in category_rows %}
+            <div class="d-flex justify-content-between border-bottom py-1"><span>{{ r.category }}</span><strong>{{ r.count }}</strong></div>
+            {% else %}<p class="text-muted mb-0">No data yet.</p>{% endfor %}
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 h-100">
+            <h5>{% if current_user.get('role') == 'customer' %}Tickets by Priority{% else %}Open Workload{% endif %}</h5>
+            {% if current_user.get('role') == 'customer' %}
+                {% for r in priority_rows %}
+                <div class="d-flex justify-content-between border-bottom py-1"><span>{{ r.priority }}</span><strong>{{ r.count }}</strong></div>
+                {% else %}<p class="text-muted mb-0">No data yet.</p>{% endfor %}
+            {% else %}
+                {% for r in agent_rows %}
+                <div class="d-flex justify-content-between border-bottom py-1"><span>{{ r.agent_name }}</span><strong>{{ r.count }}</strong></div>
+                {% else %}<p class="text-muted mb-0">No open workload yet.</p>{% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header fw-bold">Recent Tickets</div>
     <div class="table-responsive">
@@ -39,6 +72,8 @@
                 <td>{{ t.agent_name or "Unassigned" }}</td>
                 <td>{{ t.sla_due_at }}</td>
             </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-muted text-center p-4">No tickets yet.</td></tr>
             {% endfor %}
         </table>
     </div>
