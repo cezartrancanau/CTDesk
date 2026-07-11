@@ -7,6 +7,7 @@
         {% if ticket_tags %}
         <p>{% for tag in ticket_tags.split(', ') %}<span class="badge rounded-pill text-bg-light border">{{ tag }}</span> {% endfor %}</p>
         {% endif %}
+        <p class="small mb-0"><strong>SLA due:</strong> {{ ticket.sla_due_at or "Not started" }}</p>
     </div>
     {% if overdue %}
     <div class="alert alert-danger">SLA overdue</div>
@@ -104,7 +105,7 @@
 
                 <label class="form-label">Priority</label>
                 <select class="form-select mb-2" name="priority">
-                    {% for p in ["Low", "Medium", "High", "Urgent"] %}
+                    {% for p in ["Unclassified", "Low", "Medium", "High", "Urgent"] %}
                     <option {% if ticket.priority == p %}selected{% endif %}>{{ p }}</option>
                     {% endfor %}
                 </select>

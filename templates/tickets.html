@@ -32,7 +32,7 @@
     <div class="col-md-2">
         <select class="form-select" name="priority">
             <option value="">All priorities</option>
-            {% for p in ["Low", "Medium", "High", "Urgent"] %}
+            {% for p in ["Unclassified", "Low", "Medium", "High", "Urgent"] %}
             <option value="{{ p }}" {% if priority == p %}selected{% endif %}>{{ p }}</option>
             {% endfor %}
         </select>

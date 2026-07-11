@@ -18,6 +18,7 @@
                 {% endfor %}
             </select>
         </div>
+        {% if current_user.get('role') in ['admin', 'agent'] %}
         <div class="col-md-4">
             <label class="form-label">Priority</label>
             <select class="form-select mb-3" name="priority">
@@ -26,6 +27,7 @@
                 {% endfor %}
             </select>
         </div>
+        {% endif %}
         <div class="col-md-4">
             <label class="form-label">Tags optional</label>
             <input class="form-control mb-3" name="tags" placeholder="printer, vpn, outlook">

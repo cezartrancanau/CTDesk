@@ -194,6 +194,42 @@ Password: customer123
 
 ---
 
+## v3.0 Update
+
+### Added
+
+- Staff-controlled ticket triage workflow
+- New `Unclassified` priority for customer-created tickets
+- SLA activation only after an admin or agent assigns a real priority
+- Automatic SLA deadline recalculation when staff changes ticket priority
+- Automatic database migration for existing CTDesk installations
+
+### Changed
+
+- Customers no longer select or submit ticket priority
+- Customer-created tickets now start as `Unclassified` instead of `Medium`
+- Unclassified tickets have no SLA deadline until staff completes triage
+- SLA deadlines are calculated from the ticket's original creation time:
+  - **Urgent:** 4 hours
+  - **High:** 8 hours
+  - **Medium:** 24 hours
+  - **Low:** 48 hours
+- Changing a ticket's priority recalculates its SLA deadline from the original creation time
+- Resolved and closed tickets are excluded from SLA overdue tracking
+- Dashboard displays `Not started` when an SLA has not yet been activated
+- Priority filters and ticket controls now support `Unclassified`
+
+### SLA Workflow
+
+1. A customer creates a ticket without choosing priority.
+2. The ticket is stored as `Unclassified` with no SLA deadline.
+3. An admin or agent reviews the ticket and assigns a priority.
+4. CTDesk calculates the SLA deadline from the original ticket creation time.
+5. If staff later changes the priority, CTDesk recalculates the deadline using the new SLA target.
+6. An unresolved ticket is marked overdue only when it has an active SLA deadline and that deadline has passed.
+
+---
+
 ## Project Goal
 
 CTDesk is designed as a practical help desk project for demonstrating IT support, technical support and customer support workflows. It focuses on realistic ticket management features while keeping the stack simple and beginner-friendly.

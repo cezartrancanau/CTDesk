@@ -70,7 +70,7 @@
                 <td><span class="badge text-bg-secondary">{{ t.priority }}</span></td>
                 <td>{{ t.status }}</td>
                 <td>{{ t.agent_name or "Unassigned" }}</td>
-                <td>{{ t.sla_due_at }}</td>
+                <td>{{ t.sla_due_at or "Not started" }}</td>
             </tr>
             {% else %}
             <tr><td colspan="7" class="text-muted text-center p-4">No tickets yet.</td></tr>
