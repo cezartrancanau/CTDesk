@@ -4,6 +4,18 @@ CTDesk is a complete help-desk simulation created to demonstrate the practical s
 
 The project focuses on real support work rather than unnecessary technical complexity. It uses Python, Flask, SQLite, HTML and CSS so the application remains easy to understand, explain and maintain at junior level.
 
+## Application screenshots
+
+### Login and demonstration accounts
+
+The login screen provides clearly labeled local accounts so a recruiter can quickly test the administrator, support-agent and customer experiences.
+
+![CTDesk login screen](img/01-login.png)
+
+### Support-agent dashboard
+
+The agent dashboard gives an immediate overview of open work, priorities, overdue SLAs, category trends, agent workload and recently updated tickets.
+
 ![CTDesk support dashboard](img/02-dashboard.png)
 
 ### Searchable ticket queue
@@ -122,18 +134,6 @@ ticket is resolved and closed or reopened if needed
 - Duplicate emails return a friendly error
 - Project paths do not depend on the folder used to launch Python
 - The interface is styled locally and does not require internet access
-
-## Application screenshots
-
-### Login and demonstration accounts
-
-The login screen provides clearly labeled local accounts so a recruiter can quickly test the administrator, support-agent and customer experiences.
-
-![CTDesk login screen](img/01-login.png)
-
-### Support-agent dashboard
-
-The agent dashboard gives an immediate overview of open work, priorities, overdue SLAs, category trends, agent workload and recently updated tickets.
 
 ## Included demonstration data
 
