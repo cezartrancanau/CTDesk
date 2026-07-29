@@ -1,65 +1,156 @@
-# CTDesk
+# CTDesk — IT Support Help Desk
 
-Advanced Help Desk & Customer Support Ticketing System built with **Python**, **Flask** and **SQLite**.
+CTDesk is a complete help-desk simulation created to demonstrate the practical skills expected from a junior IT support technician. It follows a support request from the moment a customer reports an issue until the technician investigates, communicates, documents the solution, and closes the ticket.
 
-CTDesk is a lightweight portfolio project that demonstrates a complete support workflow with authentication, role-based access, tickets, customers, replies, attachments, SLA tracking, dashboards and CSV export.
+The project focuses on real support work rather than unnecessary technical complexity. It uses Python, Flask, SQLite, HTML and CSS so the application remains easy to understand, explain and maintain at junior level.
 
----
+![CTDesk support dashboard](img/02-dashboard.png)
 
-## Features
+### Searchable ticket queue
 
-### Authentication & Roles
-- Secure login system
-- Admin, Agent and Customer roles
-- Role-based permissions
+The ticket queue shows realistic incidents and service requests. Agents can search, filter, use quick queues, review tags, identify unassigned work and export the current view.
 
-### Ticket Management
-- Create, edit and assign tickets
-- Ticket priorities and statuses
-- SLA deadline tracking
-- Ticket conversation/comments
-- Public replies and internal notes
-- File attachments
-- Activity history
-- Ticket categories: Hardware, Software, Network, Account, Printer and Other
-- Ticket tags such as `printer`, `vpn`, `outlook` or `urgent`
-- Reopen button for resolved or closed tickets
+![CTDesk ticket queue](img/03-ticket-queue.png)
 
-### Customer Portal
-- Customers can create support tickets
-- Customers can view only their own tickets
-- Dedicated customer dashboard
+### Fully documented resolved ticket
 
-### Knowledge Base
-- Admin can create articles
-- Agents have read-only access
-- Customers cannot access the Knowledge Base
+The ticket page combines the customer report, device context, troubleshooting, root cause, verified resolution, conversation, attachments, assignment controls and staff activity history.
 
-### Dashboard
-- Ticket statistics
-- Open/Closed ticket overview
-- Tickets by status
-- Tickets by category
-- Agent workload overview
-- High priority and SLA overdue counters
+![CTDesk resolved ticket with troubleshooting record](img/04-resolved-ticket.png)
 
-### Search, Filters & Export
-- Search by ticket ID, subject, description or customer
-- Filter by status, priority, category and tag
-- Quick filters: My Tickets, High Priority, Overdue, Unassigned and Open/In Progress
-- CSV export uses the currently selected filters
+### Structured knowledge base
 
-### Other Features
-- Customer database
-- Light/Dark mode
-- Fake email notification simulation
-- Windows `.bat` runner included
+The knowledge base contains reusable support procedures for Microsoft 365, VPN, Outlook, printers and Windows blue screens. Each article explains what to check and when escalation is appropriate.
 
----
+![CTDesk knowledge base](img/05-knowledge-base.png)
 
-## How to run
+### Customer portal
 
-### Option 1: Windows quick start
+The customer dashboard presents only that customer's tickets and statistics. Staff-only pages, internal notes and operational activity are not exposed.
+
+![CTDesk customer dashboard](img/06-customer-dashboard.png)
+
+## What the application does
+
+CTDesk provides separate experiences for administrators, support agents and customers.
+
+Customers can sign in, create tickets, include device information, attach supporting files, follow public replies, and reopen an issue when the solution did not work. Customers can only access their own tickets and cannot see internal staff notes or activity records.
+
+Support agents can:
+
+- Review and triage incoming tickets
+- Assign controlled categories and priorities
+- Take ownership of tickets
+- Record the device name, asset tag, operating system, location and support channel
+- Add public replies or staff-only internal notes
+- Document troubleshooting in the order it was performed
+- Record the confirmed root cause
+- Explain the final resolution and how it was verified
+- Mark an outcome as fixed, workaround, user education, duplicate or escalated
+- Record why another team or an on-site technician is required
+- Search and filter the ticket queue
+- Monitor SLA deadlines and overdue tickets
+- Use documented knowledge-base procedures
+- Export filtered ticket data to CSV
+
+Administrators can also manage staff users, customer accounts and knowledge-base content.
+
+## Why the project is relevant to IT support
+
+The application demonstrates more than creating and editing database records. Its workflow shows the habits required in a support role:
+
+- Gathering enough information before troubleshooting
+- Understanding user impact and assigning priority consistently
+- Separating customer communication from internal investigation notes
+- Keeping a clear technical history of every action
+- Protecting customer information with role-based access
+- Knowing when to continue troubleshooting and when to escalate
+- Verifying the fix with the user
+- Turning repeated solutions into reusable documentation
+- Recognizing response targets and overdue work
+
+Customer-created tickets begin as **Unclassified**. A support technician reviews the impact and assigns the real priority before the SLA starts. This avoids allowing users to declare every issue urgent and demonstrates a simple, realistic triage process.
+
+## Ticket lifecycle
+
+```text
+customer reports an issue
+        ↓
+support gathers device and impact information
+        ↓
+ticket is categorized prioritized and assigned
+        ↓
+troubleshooting and communication are documented
+        ↓
+issue is fixed worked around or escalated
+        ↓
+root cause resolution and verification are recorded
+        ↓
+ticket is resolved and closed or reopened if needed
+```
+
+## Main features
+
+- Role-based authentication for admin, agent and customer accounts
+- Customer ticket ownership protection
+- Ticket triage, priority, assignment, category and status controls
+- Device and asset information
+- Public replies and private internal notes
+- Structured troubleshooting and resolution records
+- Escalation reasons and resolution codes
+- File attachments with allowed-type and 8 MB limits
+- SLA targets and overdue indicators
+- Search, tags, filters and common support queues
+- Dashboard statistics and agent workload
+- Knowledge-base articles with symptoms, steps and escalation guidance
+- Filtered CSV export
+- Activity history for staff
+- Light and dark themes
+- Realistic sample tickets and resettable demo data
+- Automated security, access-control and workflow tests
+
+## Security and reliability
+
+- Passwords are stored as secure hashes
+- SQL statements use parameters
+- POST forms use CSRF tokens
+- Session cookies use `HttpOnly` and `SameSite=Lax`
+- Customer access is limited to owned tickets
+- Internal notes and activity history remain staff-only
+- Upload types and file sizes are restricted
+- Debug mode is disabled
+- Duplicate emails return a friendly error
+- Project paths do not depend on the folder used to launch Python
+- The interface is styled locally and does not require internet access
+
+## Application screenshots
+
+### Login and demonstration accounts
+
+The login screen provides clearly labeled local accounts so a recruiter can quickly test the administrator, support-agent and customer experiences.
+
+![CTDesk login screen](img/01-login.png)
+
+### Support-agent dashboard
+
+The agent dashboard gives an immediate overview of open work, priorities, overdue SLAs, category trends, agent workload and recently updated tickets.
+
+## Included demonstration data
+
+The project includes realistic examples involving:
+
+- VPN disconnections after a password change
+- Microsoft 365 password and MFA recovery
+- An offline office printer
+- Outlook synchronization failure
+- Laptop overheating
+- New-starter workstation preparation
+- A blue screen caused by USB dock firmware
+- Poor Wi-Fi coverage in a meeting room
+
+The examples include resolved, open, assigned, unassigned, escalated and overdue work so the dashboard is useful immediately.
+
+## Run the project on Windows
 
 Double-click:
 
@@ -67,169 +158,55 @@ Double-click:
 run_ctdesk.bat
 ```
 
-The script will:
-
-1. Create a virtual environment if missing
-2. Install the requirements
-3. Create the database if missing
-4. Start the Flask app
-
-Then open:
+On the first run, the script creates a virtual environment, installs the requirements, creates the demo database when needed, and starts CTDesk at:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-### Option 2: Manual start
+Run `reset_demo_data.bat` whenever you want to restore the original demonstration tickets.
 
-```bash
-pip install -r requirements.txt
-python database.py
-python app.py
+## Demo accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Administrator | `admin@ctdesk.local` | `admin123` |
+| Support agent | `agent@ctdesk.local` | `agent123` |
+| Customer | `customer1@ctdesk.local` | `customer123` |
+| Customer | `customer2@ctdesk.local` | `customer123` |
+
+These accounts are for local demonstration only.
+
+## Suggested recruiter demonstration
+
+1. Sign in as a customer and report a VPN issue
+2. Include the device name, operating system and location
+3. Sign in as the support agent
+4. Triage, prioritize and assign the ticket
+5. Add an internal troubleshooting note
+6. Send a clear public reply
+7. Record the root cause, resolution and verification
+8. Resolve the ticket and show the dashboard or knowledge base
+
+## Run the automated tests
+
+```powershell
+python -m unittest discover -s tests -v
 ```
 
-Then open:
+The eight tests cover authentication, protected pages, customer ticket ownership, staff permissions, internal-note privacy, CSRF protection, resolution documentation and filtered CSV export.
 
-```text
-http://127.0.0.1:5000
-```
+## Example SLA targets
 
----
+| Priority | Target |
+|---|---:|
+| Urgent | 4 hours |
+| High | 8 hours |
+| Medium | 24 hours |
+| Low | 48 hours |
 
-## Default Accounts
+## Known limitations
 
-### Administrator
+CTDesk is a local portfolio project rather than a production service. Email notifications are simulated, business-hour calendars are not calculated, uploaded files are stored locally, and SQLite is intended for a small demonstration workload.
 
-```text
-Email: admin@ctdesk.local
-Password: admin123
-```
-
-### Agent
-
-```text
-Email: agent@ctdesk.local
-Password: agent123
-```
-
-### Customers
-
-```text
-Email: customer1@ctdesk.local
-Password: customer123
-```
-
-```text
-Email: customer2@ctdesk.local
-Password: customer123
-```
-
----
-
-## Tech Stack
-
-- Python
-- Flask
-- SQLite
-- Jinja2
-- HTML5
-- CSS3
-- Bootstrap
-- JavaScript
-
----
-
-## v1.0 Update
-
-### Added
-
-- Customer authentication system
-- Customer support portal
-- Ticket conversation/comments
-- File attachment support
-- Dashboard statistics
-- Ticket search
-- Ticket filtering
-- Simulated email notifications
-- Role-based Knowledge Base permissions
-
-### Changed
-
-- Removed demo tickets
-- Simplified initial database
-- Customers can only access their own tickets
-- Knowledge Base is now:
-  - **Admin:** can create articles
-  - **Agent:** read-only access
-  - **Customer:** no access
-
----
-
-## v2.0 Update
-
-### Added
-
-- Ticket categories as a controlled dropdown
-- Ticket tags for easier organization and filtering
-- Reopen ticket functionality for resolved or closed tickets
-- Quick filters for common support views:
-  - My Tickets
-  - High Priority
-  - Overdue
-  - Unassigned
-  - Open/In Progress
-- Improved dashboard statistics:
-  - Tickets by status
-  - Tickets by category
-  - Agent workload overview
-- Filtered CSV export
-- Dark mode readability fixes so all dashboard, table, card and form text remains visible
-
-### Improved
-
-- Ticket list now displays category and tags
-- Ticket detail page now allows staff to update category and tags
-- CSV export now respects the filters selected on the Tickets page
-- Dark mode CSS improved: fixed black text on dark backgrounds in cards, tables, forms and navigation
-
----
-
-## v3.0 Update
-
-### Added
-
-- Staff-controlled ticket triage workflow
-- New `Unclassified` priority for customer-created tickets
-- SLA activation only after an admin or agent assigns a real priority
-- Automatic SLA deadline recalculation when staff changes ticket priority
-- Automatic database migration for existing CTDesk installations
-
-### Changed
-
-- Customers no longer select or submit ticket priority
-- Customer-created tickets now start as `Unclassified` instead of `Medium`
-- Unclassified tickets have no SLA deadline until staff completes triage
-- SLA deadlines are calculated from the ticket's original creation time:
-  - **Urgent:** 4 hours
-  - **High:** 8 hours
-  - **Medium:** 24 hours
-  - **Low:** 48 hours
-- Changing a ticket's priority recalculates its SLA deadline from the original creation time
-- Resolved and closed tickets are excluded from SLA overdue tracking
-- Dashboard displays `Not started` when an SLA has not yet been activated
-- Priority filters and ticket controls now support `Unclassified`
-
-### SLA Workflow
-
-1. A customer creates a ticket without choosing priority.
-2. The ticket is stored as `Unclassified` with no SLA deadline.
-3. An admin or agent reviews the ticket and assigns a priority.
-4. CTDesk calculates the SLA deadline from the original ticket creation time.
-5. If staff later changes the priority, CTDesk recalculates the deadline using the new SLA target.
-6. An unresolved ticket is marked overdue only when it has an active SLA deadline and that deadline has passed.
-
----
-
-## Project Goal
-
-CTDesk is designed as a practical help desk project for demonstrating IT support, technical support and customer support workflows. It focuses on realistic ticket management features while keeping the stack simple and beginner-friendly.
+These limits are intentional. The goal is to demonstrate strong IT support thinking and documentation without hiding the workflow behind enterprise infrastructure.

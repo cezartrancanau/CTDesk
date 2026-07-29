@@ -21,6 +21,20 @@
             <p>{{ ticket.description }}</p>
         </div>
 
+        <div class="card p-3 mb-3">
+            <h5>Support Record</h5>
+            <h6>Troubleshooting performed</h6>
+            <p class="preserve-lines">{{ ticket.troubleshooting or "Not documented yet." }}</p>
+            <h6>Root cause</h6>
+            <p class="preserve-lines">{{ ticket.root_cause or "Not confirmed yet." }}</p>
+            <h6>Resolution</h6>
+            <p class="preserve-lines mb-1">{{ ticket.resolution or "Not resolved yet." }}</p>
+            {% if ticket.resolution_code %}<span class="badge text-bg-success">{{ ticket.resolution_code }}</span>{% endif %}
+            {% if ticket.escalation_reason %}
+            <hr><h6>Escalation reason</h6><p class="preserve-lines mb-0">{{ ticket.escalation_reason }}</p>
+            {% endif %}
+        </div>
+
         {% if ticket.status in ['Resolved', 'Closed'] %}
         <div class="card p-3 mb-3">
             <h5>Issue not fixed?</h5>
@@ -90,6 +104,17 @@
             </p>
         </div>
 
+        <div class="card p-3 mb-3">
+            <h5>Device Context</h5>
+            <dl class="row small mb-0">
+                <dt class="col-5">Device</dt><dd class="col-7">{{ ticket.device_name or "Not provided" }}</dd>
+                <dt class="col-5">Asset tag</dt><dd class="col-7">{{ ticket.asset_tag or "Not provided" }}</dd>
+                <dt class="col-5">OS</dt><dd class="col-7">{{ ticket.operating_system or "Not provided" }}</dd>
+                <dt class="col-5">Location</dt><dd class="col-7">{{ ticket.location or "Not provided" }}</dd>
+                <dt class="col-5">Channel</dt><dd class="col-7">{{ ticket.support_channel or "Portal" }}</dd>
+            </dl>
+        </div>
+
         {% if current_user.get('role') in ['admin', 'agent'] %}
         <div class="card p-3 mb-3">
             <h5>Ticket Controls</h5>
@@ -128,6 +153,26 @@
                     {% endfor %}
                 </select>
 
+                <label class="form-label">Troubleshooting performed</label>
+                <textarea class="form-control mb-2" name="troubleshooting" rows="4" placeholder="Record checks in the order performed.">{{ ticket.troubleshooting or "" }}</textarea>
+
+                <label class="form-label">Root cause</label>
+                <textarea class="form-control mb-2" name="root_cause" rows="2" placeholder="Confirmed cause, if known.">{{ ticket.root_cause or "" }}</textarea>
+
+                <label class="form-label">Resolution</label>
+                <textarea class="form-control mb-2" name="resolution" rows="3" placeholder="What fixed the issue and how it was verified.">{{ ticket.resolution or "" }}</textarea>
+
+                <label class="form-label">Resolution code</label>
+                <select class="form-select mb-2" name="resolution_code">
+                    <option value="">Not resolved</option>
+                    {% for code in ["Fixed", "Workaround", "User Education", "Duplicate", "Escalated"] %}
+                    <option {% if ticket.resolution_code == code %}selected{% endif %}>{{ code }}</option>
+                    {% endfor %}
+                </select>
+
+                <label class="form-label">Escalation reason</label>
+                <textarea class="form-control mb-3" name="escalation_reason" rows="2" placeholder="Why another team or on-site visit is needed.">{{ ticket.escalation_reason or "" }}</textarea>
+
                 <button class="btn btn-dark w-100">Update Ticket</button>
             </form>
         </div>
@@ -139,6 +184,7 @@
         </div>
         {% endif %}
 
+        {% if current_user.get('role') in ['admin', 'agent'] %}
         <div class="card p-3">
             <h5>Activity Log</h5>
             {% for l in logs %}
@@ -148,6 +194,7 @@
             </div>
             {% endfor %}
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

@@ -20,7 +20,7 @@
         <div class="card p-3 mb-3">
             <h5>{{ a.title }}</h5>
             <div class="text-muted small">{{ a.category }} · {{ a.author }} · {{ a.created_at }}</div>
-            <p class="mt-2">{{ a.content }}</p>
+            <p class="mt-2 preserve-lines">{{ a.content }}</p>
         </div>
         {% endfor %}
     </div>

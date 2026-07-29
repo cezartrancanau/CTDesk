@@ -94,6 +94,11 @@ def create_ticket():
         description = request.form["description"]
         category = request.form["category"]
         tags = request.form.get("tags", "")
+        device_name = request.form.get("device_name", "").strip()
+        asset_tag = request.form.get("asset_tag", "").strip()
+        operating_system = request.form.get("operating_system", "").strip()
+        location = request.form.get("location", "").strip()
+        support_channel = request.form.get("support_channel", "Portal").strip()
 
         if session.get("role") == "customer":
             customer_id = session.get("customer_id")
@@ -107,11 +112,13 @@ def create_ticket():
         cur = conn.execute("""
             INSERT INTO tickets
             (subject, description, category, priority, status, customer_id, assigned_to, created_by,
-             created_at, updated_at, sla_due_at)
-            VALUES (?, ?, ?, ?, 'Open', ?, ?, ?, ?, ?, ?)
+             created_at, updated_at, sla_due_at, device_name, asset_tag, operating_system,
+             location, support_channel)
+            VALUES (?, ?, ?, ?, 'Open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             subject, description, category, priority, customer_id, assigned_to,
-            session["user_id"], now(), now(), calculate_sla(priority)
+            session["user_id"], now(), now(), calculate_sla(priority), device_name,
+            asset_tag, operating_system, location, support_channel
         ))
 
         ticket_id = cur.lastrowid
@@ -167,6 +174,11 @@ def ticket_detail(ticket_id):
             assigned_to = request.form.get("assigned_to") or None
             category = request.form.get("category", old["category"])
             tags = request.form.get("tags", "")
+            troubleshooting = request.form.get("troubleshooting", "").strip()
+            root_cause = request.form.get("root_cause", "").strip()
+            resolution = request.form.get("resolution", "").strip()
+            resolution_code = request.form.get("resolution_code", "").strip()
+            escalation_reason = request.form.get("escalation_reason", "").strip()
 
             resolved_at = old["resolved_at"]
             if status in ("Resolved", "Closed") and not resolved_at:
@@ -176,15 +188,19 @@ def ticket_detail(ticket_id):
 
             sla_due_at = old["sla_due_at"]
             if priority != old["priority"]:
-                # SLA always uses the original ticket creation time. Selecting
-                # Unclassified pauses SLA tracking until staff completes triage.
+                # uses the first ticket time for the sla
+                # unclassified tickets do not have an sla yet
                 sla_due_at = calculate_sla(priority, old["created_at"])
 
             conn.execute("""
                 UPDATE tickets
-                SET status=?, priority=?, category=?, assigned_to=?, updated_at=?, resolved_at=?, sla_due_at=?
+                SET status=?, priority=?, category=?, assigned_to=?, updated_at=?, resolved_at=?,
+                    sla_due_at=?, troubleshooting=?, root_cause=?, resolution=?,
+                    resolution_code=?, escalation_reason=?
                 WHERE id=?
-            """, (status, priority, category, assigned_to, now(), resolved_at, sla_due_at, ticket_id))
+            """, (status, priority, category, assigned_to, now(), resolved_at, sla_due_at,
+                  troubleshooting, root_cause, resolution, resolution_code,
+                  escalation_reason, ticket_id))
             save_ticket_tags(conn, ticket_id, tags)
 
             conn.commit()
@@ -242,7 +258,7 @@ def ticket_detail(ticket_id):
         WHERE t.id=?
     """, (ticket_id,)).fetchone()
 
-    agents = conn.execute("SELECT * FROM users ORDER BY name").fetchall()
+    agents = conn.execute("SELECT * FROM users WHERE role IN ('admin', 'agent') ORDER BY name").fetchall()
 
     messages = conn.execute("""
         SELECT m.*, u.name AS user_name
@@ -264,13 +280,15 @@ def ticket_detail(ticket_id):
     tag_rows = conn.execute("SELECT tag FROM ticket_tags WHERE ticket_id=? ORDER BY tag", (ticket_id,)).fetchall()
     ticket_tags = ", ".join([r["tag"] for r in tag_rows])
 
-    logs = conn.execute("""
-        SELECT l.*, u.name AS user_name
-        FROM activity_logs l
-        JOIN users u ON u.id = l.user_id
-        WHERE l.ticket_id=?
-        ORDER BY l.created_at DESC
-    """, (ticket_id,)).fetchall()
+    logs = []
+    if session.get("role") in ("admin", "agent"):
+        logs = conn.execute("""
+            SELECT l.*, u.name AS user_name
+            FROM activity_logs l
+            JOIN users u ON u.id = l.user_id
+            WHERE l.ticket_id=?
+            ORDER BY l.created_at DESC
+        """, (ticket_id,)).fetchall()
 
     conn.close()
 

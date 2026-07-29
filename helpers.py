@@ -48,11 +48,15 @@ def save_ticket_attachment(file, ticket_id, conn):
 
 def ensure_schema():
     conn = db()
+    conn.execute("PRAGMA foreign_keys = ON")
 
-    # v3 migration: allow tickets to remain unclassified until staff triage
+    # keeps old databases working
     tickets_table = conn.execute(
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='tickets'"
     ).fetchone()
+    if not tickets_table:
+        conn.close()
+        return
     if tickets_table and (
         "Unclassified" not in tickets_table["sql"]
         or "sla_due_at TEXT NOT NULL" in tickets_table["sql"]
@@ -109,6 +113,24 @@ def ensure_schema():
             UNIQUE(ticket_id, tag)
         )
     """)
+    existing_columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(tickets)").fetchall()
+    }
+    support_fields = {
+        "device_name": "TEXT",
+        "asset_tag": "TEXT",
+        "operating_system": "TEXT",
+        "location": "TEXT",
+        "support_channel": "TEXT",
+        "troubleshooting": "TEXT",
+        "root_cause": "TEXT",
+        "resolution": "TEXT",
+        "resolution_code": "TEXT",
+        "escalation_reason": "TEXT",
+    }
+    for column, column_type in support_fields.items():
+        if column not in existing_columns:
+            conn.execute(f"ALTER TABLE tickets ADD COLUMN {column} {column_type}")
     conn.commit()
     conn.close()
 

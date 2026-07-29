@@ -1,3 +1,5 @@
+import sqlite3
+
 from flask import render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash
 
@@ -15,15 +17,15 @@ def customers():
         customer_email = request.form["email"].strip().lower()
         customer_password = request.form.get("password") or "customer123"
 
-        cur = conn.execute("""
-            INSERT INTO users (name, email, password_hash, role, created_at)
-            VALUES (?, ?, ?, 'customer', ?)
-        """, (
-            customer_name,
-            customer_email,
-            generate_password_hash(customer_password),
-            now()
-        ))
+        try:
+            cur = conn.execute("""
+                INSERT INTO users (name, email, password_hash, role, created_at)
+                VALUES (?, ?, ?, 'customer', ?)
+            """, (customer_name, customer_email, generate_password_hash(customer_password), now()))
+        except sqlite3.IntegrityError:
+            conn.close()
+            flash("That email address is already in use.", "danger")
+            return redirect(url_for("customers"))
         user_id = cur.lastrowid
 
         conn.execute("""
@@ -87,16 +89,17 @@ def users():
     conn = db()
 
     if request.method == "POST":
-        conn.execute("""
-            INSERT INTO users (name, email, password_hash, role, created_at)
-            VALUES (?, ?, ?, ?, ?)
-        """, (
-            request.form["name"],
-            request.form["email"],
-            generate_password_hash(request.form["password"]),
-            request.form["role"],
-            now()
-        ))
+        try:
+            conn.execute("""
+                INSERT INTO users (name, email, password_hash, role, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (request.form["name"], request.form["email"].strip().lower(),
+                  generate_password_hash(request.form["password"]),
+                  request.form["role"], now()))
+        except sqlite3.IntegrityError:
+            conn.close()
+            flash("That email address is already in use.", "danger")
+            return redirect(url_for("users"))
         conn.commit()
         flash("User created.", "success")
 

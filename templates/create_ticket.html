@@ -9,6 +9,19 @@
     <label class="form-label">Description</label>
     <textarea class="form-control mb-3" name="description" rows="5" required></textarea>
 
+    <h5 class="mt-2">Device and support context <span class="text-muted small">(optional)</span></h5>
+    <div class="row">
+        <div class="col-md-4"><label class="form-label">Device name</label><input class="form-control mb-3" name="device_name" placeholder="LT-BS-014"></div>
+        <div class="col-md-4"><label class="form-label">Asset tag</label><input class="form-control mb-3" name="asset_tag" placeholder="BS-1042"></div>
+        <div class="col-md-4"><label class="form-label">Operating system</label><input class="form-control mb-3" name="operating_system" placeholder="Windows 11"></div>
+        <div class="col-md-6"><label class="form-label">Location</label><input class="form-control mb-3" name="location" placeholder="Bucharest HQ or Remote"></div>
+        <div class="col-md-6"><label class="form-label">Support channel</label>
+            <select class="form-select mb-3" name="support_channel">
+                {% for channel in ["Portal", "Phone", "Email", "Walk-up"] %}<option>{{ channel }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-4">
             <label class="form-label">Category</label>
